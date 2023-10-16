@@ -1,11 +1,13 @@
+import { TiktokDL } from '@tobyg74/tiktok-api-dl';
+import dotenv from 'dotenv';
 import express from 'express';
-export const routes = express.Router();
-import { TiktokDL, TiktokStalk } from '@tobyg74/tiktok-api-dl';
-import { customError, response } from './utils/index.js';
+import { TTScraper, fetchUser } from "tiktok-scraper-ts";
+import ttdl from 'vz-tiktok-downloader';
 import { status } from './constants/constants.js';
 import { IResponseV2 } from './interface/index.js';
-import dotenv from 'dotenv';
-import ttdl from 'vz-tiktok-downloader';
+import { checkExistUser, customError, response } from './utils/index.js';
+export const routes = express.Router();
+const TikTokScraper = new TTScraper();
 
 dotenv.config();
 
@@ -24,7 +26,7 @@ routes.post('/getDataFromURL', async(req, res) => {
     return res.status(200).send(response(200, status.success, responseData.result));
   } catch (err) {
     console.log(err);
-    if (err.code !== 500) {
+    if (err && err.code && err.code !== 500) {
       return res.status(err.code).send(response(err.code, status.failed, null, err.message));
     }
     return res.status(500).send(response(500, status.failed, null, 'Server bị lỗi!!!'));
@@ -38,18 +40,19 @@ routes.post('/getVideosFromUser', async (req, res) => {
     if (!body || !body.username) {
       throw customError('Bạn phải nhập một username!!!', 400);
     }
-
-    const options = {
-      cookie: process.env.cookie || ''
+    const isExist = await checkExistUser(body.username);
+    if (!isExist) {
+      throw customError('Người dùng không tồn tại!!!', 404);
     }
-    const responseData = await TiktokStalk(body.username, options);
-    if (!responseData || !responseData.result) {
-      throw customError('Không tìm thấy người dùng này!!!', 404);
+    const responseData = await TikTokScraper.getAllVideosFromUser(body.username);
+    const result = {
+      username: body.username,
+      posts: responseData
     }
-    return res.status(200).send(response(200, status.success, responseData.result));
+    return res.status(200).send(response(200, status.success, result));
   } catch (err) {
     console.log(err);
-    if (err.code !== 500) {
+    if (err && err.code && err.code !== 500) {
       return res.status(err.code).send(response(err.code, status.failed, null, err.message));
     }
     return res.status(500).send(response(500, status.failed, null, 'Server bị lỗi!!!'));
@@ -71,7 +74,7 @@ routes.post('/download', async(req, res) => {
     return res.status(200).send(response(200, status.success, fetchVideo.video));
   } catch (err) {
     console.log(err);
-    if (err.code !== 500) {
+    if (err && err.code && err.code !== 500) {
       return res.status(err.code).send(response(err.code, status.failed, null, err.message));
     }
     return res.status(500).send(response(500, status.failed, null, 'Server bị lỗi!!!'));
@@ -103,7 +106,7 @@ routes.post('/downloadAll', async(req, res) => {
     return res.status(200).send(response(200, status.success, responseList));
   } catch (err) {
     console.log(err);
-    if (err.code !== 500) {
+    if (err && err.code && err.code !== 500) {
       return res.status(err.code).send(response(err.code, status.failed, null, err.message));
     }
     return res.status(500).send(response(500, status.failed, null, 'Server bị lỗi!!!'));
