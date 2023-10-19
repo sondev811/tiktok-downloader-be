@@ -112,3 +112,35 @@ routes.post('/downloadAll', async(req, res) => {
     return res.status(500).send(response(500, status.failed, null, 'Server bị lỗi!!!'));
   }
 });
+
+routes.post('/customDownload', async(req, res) => {
+  try {
+    const { body } = req;
+    if (!body || !Array.isArray(body)) {
+      throw customError('Bạn list video!!!', 400);
+    }
+    const responseList = [];
+    for (const item of body) {
+      const url = `https://www.tiktok.com/@${item.username}/video/${item.videoId}`
+      const fetchVideo = await ttdl.getInfo(url);
+      if (fetchVideo.success &&
+        fetchVideo.author
+        && fetchVideo.author.profile
+        && fetchVideo.video.url && fetchVideo.video.url.no_wm
+      ) {
+        responseList.push({
+          id: item.videoId,
+          url: fetchVideo.video.url.no_wm,
+          username: item.username
+        });
+      }
+    }
+    return res.status(200).send(response(200, status.success, responseList));
+  } catch (err) {
+    console.log(err);
+    if (err && err.code && err.code !== 500) {
+      return res.status(err.code).send(response(err.code, status.failed, null, err.message));
+    }
+    return res.status(500).send(response(500, status.failed, null, 'Server bị lỗi!!!'));
+  }
+});
