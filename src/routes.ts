@@ -14,6 +14,7 @@ dotenv.config();
 routes.post('/getDataFromURL', async(req, res) => {
   try {
     const { body } = req;
+    console.log('[Post] Request api getDataFromURL');
     if (!body || !body.url) {
       throw customError('Bạn phải nhập vào một đường dẫn của video!!!', 400);
     }
@@ -25,7 +26,7 @@ routes.post('/getDataFromURL', async(req, res) => {
     }
     return res.status(200).send(response(200, status.success, responseData.result));
   } catch (err) {
-    console.log(err);
+    console.log('Error getDataFromURL: ', err);
     if (err && err.code && err.code !== 500) {
       return res.status(err.code).send(response(err.code, status.failed, null, err.message));
     }
@@ -35,8 +36,8 @@ routes.post('/getDataFromURL', async(req, res) => {
 
 routes.post('/getVideosFromUser', async (req, res) => {
   try {
+    console.log('[Post] Request api getVideosFromUser');
     const { body } = req;
-
     if (!body || !body.username) {
       throw customError('Bạn phải nhập một username!!!', 400);
     }
@@ -51,7 +52,7 @@ routes.post('/getVideosFromUser', async (req, res) => {
     }
     return res.status(200).send(response(200, status.success, result));
   } catch (err) {
-    console.log(err);
+    console.log('Error getVideosFromUser: ', err);
     if (err && err.code && err.code !== 500) {
       return res.status(err.code).send(response(err.code, status.failed, null, err.message));
     }
@@ -61,6 +62,7 @@ routes.post('/getVideosFromUser', async (req, res) => {
 
 routes.post('/download', async(req, res) => {
   try {
+    console.log('[Post] Request api download');
     const { body } = req;
     if (!body || !body.id || !body.username) {
       throw customError('Bạn phải nhập username và id của video!!!', 400);
@@ -73,7 +75,7 @@ routes.post('/download', async(req, res) => {
     }
     return res.status(200).send(response(200, status.success, fetchVideo.video));
   } catch (err) {
-    console.log(err);
+    console.log('Error download: ', err);
     if (err && err.code && err.code !== 500) {
       return res.status(err.code).send(response(err.code, status.failed, null, err.message));
     }
@@ -84,6 +86,7 @@ routes.post('/download', async(req, res) => {
 routes.post('/downloadAll', async(req, res) => {
   try {
     const { body } = req;
+    console.log('[Post] Request api downloadAll');
     if (!body || !body.idList || !body.username || !Array.isArray(body.idList)) {
       throw customError('Bạn phải nhập username và id list của video!!!', 400);
     }
@@ -105,7 +108,7 @@ routes.post('/downloadAll', async(req, res) => {
     }
     return res.status(200).send(response(200, status.success, responseList));
   } catch (err) {
-    console.log(err);
+    console.log('Error downloadAll: ', err);
     if (err && err.code && err.code !== 500) {
       return res.status(err.code).send(response(err.code, status.failed, null, err.message));
     }
@@ -116,10 +119,12 @@ routes.post('/downloadAll', async(req, res) => {
 routes.post('/customDownload', async(req, res) => {
   try {
     const { body } = req;
+    console.log('[Post] Request api customDownload');
     if (!body || !Array.isArray(body)) {
       throw customError('Bạn list video!!!', 400);
     }
-    const responseList = [];
+    const successList = [];
+    const errorList = [];
     for (const item of body) {
       const url = `https://www.tiktok.com/@${item.username}/video/${item.videoId}`
       const fetchVideo = await ttdl.getInfo(url);
@@ -128,16 +133,22 @@ routes.post('/customDownload', async(req, res) => {
         && fetchVideo.author.profile
         && fetchVideo.video.url && fetchVideo.video.url.no_wm
       ) {
-        responseList.push({
+        successList.push({
           id: item.videoId,
           url: fetchVideo.video.url.no_wm,
           username: item.username
         });
+      } else {
+        errorList.push({
+          id: item.videoId,
+          url: fetchVideo.video.url.no_wm,
+          username: item.username
+        })
       }
     }
-    return res.status(200).send(response(200, status.success, responseList));
+    return res.status(200).send(response(200, status.success, { successList, errorList }));
   } catch (err) {
-    console.log(err);
+    console.log('Error: customDownload', err);
     if (err && err.code && err.code !== 500) {
       return res.status(err.code).send(response(err.code, status.failed, null, err.message));
     }

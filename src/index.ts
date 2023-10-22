@@ -19,15 +19,15 @@ const corsOpts = {
    optionSuccessStatus:200,
 };
 app.use(cors(corsOpts));
-app.use(bodyParser.json());
-app.use(express.static(path.resolve(dirName, '../client/build')));
+// app.use(bodyParser.json());
+app.use(express.static(path.resolve(dirName, '../build')));
 
 const port = process.env.PORT || 3300;
 
-app.use('/api', routes);
+app.use('/api', bodyParser.json(), routes);
 
 app.get('*', (req, res) => {
-  res.sendFile(path.resolve(dirName, '../client/build', 'index.html'));
+  res.sendFile(path.resolve(dirName, '../build', 'index.html'));
 });
 
 app.listen(port, () => {
